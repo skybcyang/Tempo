@@ -1,8 +1,11 @@
+//
+// Created by skybcyang on 2020/11/15.
+//
+
 #include <iostream>
 #include <queue>
 #include <mutex>
-
-using namespace std;
+#include "third_party/catch.hpp"
 
 using DeviceId = int32_t;
 
@@ -41,6 +44,13 @@ using cam1stream = DataQueue<cam1, float>;
 using cam2stream = DataQueue<cam2, std::string>;
 using cam3stream = DataQueue<cam3, int>;
 
+struct DataSet {
+    int a;
+    float b;
+    std::string c;
+    int d;
+};
+
 
 template <typename T, typename F, size_t ...Is>
 void foreach(T&& tuple, F&& f, std::index_sequence<Is...>) {
@@ -64,7 +74,7 @@ template <typename TUPLE>
 class DataSet : public TUPLE {
 public:
     void Sync() {
-        foreach(static_cast<TUPLE&>(*this), [](auto& value){cout<<value.GetAndPopData()<<endl;});
+        foreach(static_cast<TUPLE&>(*this), [](auto& value) -> Data{std::cout<<value.GetAndPopData()<<std::endl;});
     }
     template <typename T>
     T& GetDataQueue() {
@@ -75,12 +85,12 @@ public:
 using DataSetInstance = DataSet<std::tuple<cam0stream, cam1stream, cam2stream, cam3stream>>;
 
 
-int main() {
+
+TEST_CASE("an empty list appends an non-empty task list") {
     DataSetInstance dataset;
     dataset.GetDataQueue<cam0stream>().PushData(1);
     dataset.GetDataQueue<cam1stream>().PushData(3.2);
     dataset.GetDataQueue<cam2stream>().PushData("ssdsds");
     dataset.GetDataQueue<cam3stream>().PushData(9);
-    dataset.Sync();
-    return 0;
+    auto data = dataset.Sync();
 }
