@@ -32,18 +32,20 @@ private:
 using cam0stream = DataQueue<int>;
 using cam1stream = DataQueue<float>;
 using cam2stream = DataQueue<std::string>;
+using DataSet = std::tuple<int, float, std::string>;
 
 
-template <typename T, typename F, size_t ...Is>
-void foreach(T&& tuple, F&& f, std::index_sequence<Is...>) {
-    ((f(std::get<Is>(tuple))), ...);
+template <typename T, size_t ...Is>
+auto foreach(T&& tuple, std::index_sequence<Is...>) -> DataSet {
+    DataSet ds;
+    ((std::get<Is>(ds) = std::get<Is>(tuple).GetAndPopData()), ...);
+    return ds;
 }
 
-template <typename T, typename F>
-void foreach(T&& tuple, F&& f) {
-    foreach(
+template <typename T>
+auto foreach(T&& tuple) -> DataSet {
+    return foreach(
             std::forward<T>(tuple),
-            std::forward<F>(f),
             std::make_index_sequence<std::tuple_size_v<std::decay_t<T>>>{}
     );
 }
@@ -55,8 +57,8 @@ public:
         static DataCenterT dataCenter;
         return dataCenter;
     }
-    auto SyncData() {
-        foreach(static_cast<TUPLE&>(*this), [&](auto& value){std::cout<<value.GetAndPopData()<<std::endl;});
+    auto SyncData() -> DataSet {
+        return foreach(static_cast<TUPLE&>(*this));
     }
     template <typename T>
     T& GetDataQueue() {
@@ -101,19 +103,17 @@ void thread4() {
     DataCenter& dataCenter = DataCenter::GetDataCenterIns();
     int time = 0;
     while(time < 10) {
-        dataCenter.SyncData();
+        auto ds = dataCenter.SyncData();
         time++;
     }
 }
 
-
-std::thread t1(thread1);
-std::thread t2(thread2);
-std::thread t3(thread3);
-std::thread t4(thread4);
-
-
 TEST_CASE("test sync") {
+    std::thread t1(thread1);
+    std::thread t2(thread2);
+    std::thread t3(thread3);
+    std::thread t4(thread4);
+
     t1.join();
     t2.join();
     t3.join();

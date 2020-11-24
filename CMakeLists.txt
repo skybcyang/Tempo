@@ -8,4 +8,4 @@ add_executable(Tempo
         multi_stream_input_and_sync/model2.cpp
         catch.cpp
         third_party/catch.hpp
-        )
+        my_shared_ptr/my_shared_ptr.h my_shared_ptr/test_my_shared_ptr.cpp)
