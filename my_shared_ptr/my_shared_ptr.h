@@ -1,15 +1,17 @@
 //
 // Created by skybcyang on 2020/11/25.
+// 参考C++沉思录实现UserCount
 //
 
 #ifndef TEMPO_MY_SHARED_PTR_H
 #define TEMPO_MY_SHARED_PTR_H
 
 #include <iostream>
+#include <atomic>
 
 struct UserCount {
 public:
-    UserCount() : user_count(new size_t(1)) {}
+    UserCount() : user_count(new std::atomic_size_t(1)) {}
     UserCount(const UserCount& uc) : user_count(uc.user_count) {
         ++(*user_count);
     }
@@ -39,17 +41,18 @@ public:
 private:
     UserCount& operator=(const UserCount& uc);
 private:
-    size_t* user_count;
+    std::atomic_size_t* user_count;
 };
 
 template <typename T>
 struct MySharedPtr {
 public:
     MySharedPtr() : t(new T) {}
+    MySharedPtr(nullptr_t rhs) : t(rhs) {}
     template<typename ...Ts>
     MySharedPtr(Ts... args) : t(new T(args...)) {}
     MySharedPtr(const MySharedPtr& rhs) : t(rhs.t), uc(rhs.uc) {}
-    MySharedPtr(const T& tt) : t(new T(tt)) {}
+    MySharedPtr(const T& tt) : t(new T(std::move(tt))) {}
     MySharedPtr& operator=(const MySharedPtr& rhs) {
         if (uc.reattach(rhs.uc)) {
             delete t;
@@ -71,7 +74,7 @@ private:
 
 
 template <typename T, typename ...Ts>
-MySharedPtr<T> make_shared(Ts... args) {
+MySharedPtr<T> MakeShared(Ts... args) {
     return MySharedPtr<T>(args...);
 }
 
